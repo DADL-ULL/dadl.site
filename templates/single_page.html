@@ -322,102 +322,101 @@
       <!-- Professor Section -->
    <section id="professor" class="section">
    <div class="container">
-      <div class="card p-4">
-         <div class="row">
-            <!-- Left column: Photo and basic info -->
-            <div class="col-lg-2 col-md-3 text-center mb-3 mb-md-0">
-               {% if professor.photo %}
-               <img
-                  src="{{ url_for('static', filename='uploads/professor/' + professor.photo) }}"
-                  class="rounded-circle mx-auto"
-                  style="width: 180px; height: 180px; object-fit: cover; border: 3px solid #420303;"
-                  alt="{{ professor.name }}"
-               />
+   <div class="card p-4">
+      <div class="row">
+         <!-- Left column: Photo and basic info -->
+         <div class="col-lg-2 col-md-3 col-sm-12 text-center mb-3 mb-md-0">
+            {% if professor.photo %}
+            <img
+               src="{{ url_for('static', filename='uploads/professor/' + professor.photo) }}"
+               class="rounded-circle mx-auto img-fluid"
+               style="max-width: 180px; width: 100%; height: auto; aspect-ratio: 1/1; object-fit: cover; border: 3px solid #420303;"
+               alt="{{ professor.name }}"
+            />
+            {% else %}
+            <div
+               class="bg-light rounded-circle mx-auto d-flex align-items-center justify-content-center"
+               style="max-width: 150px; width: 100%; aspect-ratio: 1/1;"
+            >
+               <i class="fas fa-user fa-4x text-secondary"></i>
+            </div>
+            {% endif %}
+            
+            <h5 class="text-primary-custom mt-3 mb-2">
+               {{ professor.name or 'Aminul Islam' }}
+            </h5>
+            
+            <div class="text-muted">
+               {% if professor.title %}
+                  {% for title in professor.title.split(',') %}
+                     <div>{{ title.strip() }}</div>
+                  {% endfor %}
                {% else %}
-               <div
-                  class="bg-light rounded-circle mx-auto d-flex align-items-center justify-content-center"
-                  style="width: 150px; height: 150px"
-               >
-                  <i class="fas fa-user fa-4x text-secondary"></i>
-               </div>
+                  <div>Associate Professor</div>
                {% endif %}
-               
-               <h5 class="text-primary-custom mt-3 mb-2">
-                  {{ professor.name or 'Aminul Islam' }}
-               </h5>
-               
-               <div class="text-muted">
-                  {% if professor.title %}
-                     {% for title in professor.title.split(',') %}
-                        <div>{{ title.strip() }}</div>
-                     {% endfor %}
-                  {% else %}
-                     <div>Associate Professor</div>
-                  {% endif %}
-               </div>
-
-               <!-- Social Links -->
-               <div class="d-flex justify-content-center gap-2 mt-3">
-                  {% if professor.linkedin %}
-                  <a href="{{ professor.linkedin }}" target="_blank" class="icon-link" style="color: #0a66c2">
-                     <i class="fab fa-linkedin"></i>
-                  </a>
-                  {% endif %}
-                  {% if professor.google_scholar %}
-                  <a href="{{ professor.google_scholar }}" target="_blank" class="icon-link" style="color: #000">
-                     <i class="ai ai-google-scholar"></i>
-                  </a>
-                  {% endif %}
-                  {% if professor.website %}
-                  <a href="{{ professor.website }}" target="_blank" class="icon-link" style="color: #420303">
-                     <i class="fas fa-globe"></i>
-                  </a>
-                  {% endif %}
-                  {% if professor.email %}
-                  <a href="mailto:{{ professor.email }}" class="icon-link" style="color: #d44638">
-                     <i class="fas fa-envelope"></i>
-                  </a>
-                  {% endif %}
-               </div>
             </div>
 
-            <!-- Right column: Details -->
-            <div class="col-lg-10 col-md-9">
-               {% if professor.bio %}
-               <div class="mb-3">
-                  <h5 class="mb-2">About Me</h5>
-                  <p>{{ professor.bio }}</p>
-               </div>
+            <!-- Social Links -->
+            <div class="d-flex justify-content-center gap-2 mt-3">
+               {% if professor.linkedin %}
+               <a href="{{ professor.linkedin }}" target="_blank" class="icon-link" style="color: #0a66c2">
+                  <i class="fab fa-linkedin"></i>
+               </a>
                {% endif %}
+               {% if professor.google_scholar %}
+               <a href="{{ professor.google_scholar }}" target="_blank" class="icon-link" style="color: #000">
+                  <i class="ai ai-google-scholar"></i>
+               </a>
+               {% endif %}
+               {% if professor.website %}
+               <a href="{{ professor.website }}" target="_blank" class="icon-link" style="color: #420303">
+                  <i class="fas fa-globe"></i>
+               </a>
+               {% endif %}
+               {% if professor.email %}
+               <a href="mailto:{{ professor.email }}" class="icon-link" style="color: #d44638">
+                  <i class="fas fa-envelope"></i>
+               </a>
+               {% endif %}
+            </div>
+         </div>
 
-               <div>
-                  <h5 class="mb-2">Education</h5>
-                  <ul class="list-unstyled">
-                     {% for entry in professor.education.split('\n') %}
-                     <li class="mb-1">{{ entry }}</li>
-                     {% endfor %}
-                  </ul>
+         <!-- Right column: Details -->
+         <div class="col-lg-10 col-md-9 col-sm-12">
+            {% if professor.bio %}
+            <div class="mb-3">
+               <h5 class="mb-2">About Me</h5>
+               <p>{{ professor.bio }}</p>
+            </div>
+            {% endif %}
+
+            <div>
+               <h5 class="mb-2">Education</h5>
+               <ul class="list-unstyled">
+                  {% for entry in professor.education.split('\n') %}
+                  <li class="mb-1">{{ entry }}</li>
+                  {% endfor %}
+               </ul>
+            </div>
+
+            <div class="row mb-3">
+               <div class="col-md-4">
+                  <h6 class="mb-1"><i class="fas fa-envelope me-1"></i> Email</h6>
+                  <p class="text-muted mb-0">
+                     {{ professor.email or 'prof@university.edu' }}
+                  </p>
                </div>
-
-               <div class="row mb-3">
-                  <div class="col-md-4">
-                     <h6 class="mb-1"><i class="fas fa-envelope me-1"></i> Email</h6>
-                     <p class="text-muted mb-0">
-                        {{ professor.email or 'prof@university.edu' }}
-                     </p>
-                  </div>
-                  <div class="col-md-4">
-                     <h6 class="mb-1"><i class="fas fa-building me-1"></i> Office</h6>
-                     <p class="text-muted mb-0">
-                        {{ professor.office or 'Room 301, CS Building' }}
-                     </p>
-                  </div>
-                  
+               <div class="col-md-4">
+                  <h6 class="mb-1"><i class="fas fa-building me-1"></i> Office</h6>
+                  <p class="text-muted mb-0">
+                     {{ professor.office or 'Room 301, CS Building' }}
+                  </p>
                </div>
             </div>
          </div>
       </div>
    </div>
+</div>
 </section>
 
       <!-- Students Section -->
