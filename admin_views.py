@@ -9,14 +9,13 @@ import os
 import PIL.Image
 from wtforms import SelectField
 
-# Monkey patch for Pillow 10.0.0 compatibility
+from models import Student
+
+
 if not hasattr(PIL.Image, 'ANTIALIAS'):
     PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
 
-
-# ============================================================================
 # Base Admin Views
-# ============================================================================
 class AuthenticatedModelView(ModelView):
     def is_accessible(self):
         return current_user.is_authenticated
@@ -50,39 +49,51 @@ class MyAdminIndexView(AdminIndexView):
                           active_projects=active_projects,
                           total_publications=total_publications)
 
-# ============================================================================
 # Custom Model Views with File Upload Support
-# ============================================================================
+from flask_admin.form.upload import FileUploadField
+import os
+
 class ProfessorModelView(AuthenticatedModelView):
     column_list = ['name', 'title', 'email', 'office', 'photo']
     column_searchable_list = ['name', 'email', 'title']
     
-    # Configure file upload for photo field
+    # Use FileUploadField instead of ImageUploadField
     form_overrides = {
-        'photo': ImageUploadField
+        'photo': FileUploadField
     }
     
     form_args = {
         'photo': {
             'label': 'Profile Photo',
             'base_path': 'static/uploads/professor',
-            'url_relative_path': 'uploads/professor/',
-            'allowed_extensions': ['jpg', 'jpeg', 'png', 'gif'],
-            'max_size': (800, 800, True),  # Max width, height, force resize
-            'thumbnail_size': (100, 100, True)  # Thumbnail for admin view
+            'allowed_extensions': ['jpg', 'jpeg', 'png', 'gif']
         }
     }
     
-    # Optional: Add custom validation
+    # Display image in admin list
+    def _list_thumbnail(view, context, model, name):
+        if not model.photo:
+            return ''
+        return f'<img src="/static/uploads/professor/{model.photo}" width="50" style="object-fit: cover;">'
+    
+    column_formatters = {
+        'photo': _list_thumbnail
+    }
+
     def on_model_change(self, form, model, is_created):
-        # Handle old photo deletion when updating
-        if not is_created and 'photo' in form:
-            old_photo = model.photo
-            if old_photo and old_photo != form.photo.data:
-                # Delete old photo file
-                old_path = os.path.join('static/uploads/professor', old_photo)
+        # Clean up old photo when replacing
+        if not is_created and hasattr(form, 'photo') and form.photo.data:
+            # Get the old photo from database
+            from app import db, Professor
+            old_professor = db.session.query(Professor).filter_by(id=model.id).first()
+            if old_professor and old_professor.photo and old_professor.photo != model.photo:
+                old_path = os.path.join('static/uploads/professor', old_professor.photo)
                 if os.path.exists(old_path):
-                    os.remove(old_path)
+                    try:
+                        os.remove(old_path)
+                    except:
+                        pass  # Ignore if file doesn't exist
+        
         return super().on_model_change(form, model, is_created)
 
 
@@ -92,7 +103,6 @@ class StudentModelView(AuthenticatedModelView):
     column_searchable_list = ['name', 'research_focus']
     form_excluded_columns = ['created_at', 'projects']
     
-    # Configure file upload for photo field
     form_overrides = {
         'photo': ImageUploadField,
         'degree_type': SelectField  
@@ -108,13 +118,12 @@ class StudentModelView(AuthenticatedModelView):
             'thumbnail_size': (100, 100, True),
             'validators': [validators.Optional()]
         },
-        'degree_type': {  # Add this
+        'degree_type': {
             'choices': [('PhD', 'PhD'), ('Masters', 'Masters')],
             'coerce': str
         }
     }
     
-    # Custom column formatter to show photo thumbnails in list view
     def _list_thumbnail(view, context, model, name):
         if not model.photo:
             return ''
@@ -124,20 +133,36 @@ class StudentModelView(AuthenticatedModelView):
         'photo': _list_thumbnail
     }
 
+from flask_admin.contrib.sqla.fields import QuerySelectMultipleField
+
 class ProjectModelView(AuthenticatedModelView):
-    column_list = ['title', 'topic', 'status', 'start_date', 'image1', 'image2', 'image3', 'image4']
+    column_list = ['title', 'topic', 'status', 'start_date', 'members', 'image1', 'image2', 'image3', 'image4']
     column_filters = ['status', 'topic']
     column_searchable_list = ['title', 'overview']
     form_excluded_columns = ['created_at']
-
-    # Configure file upload for multiple image fields
+    
     form_overrides = {
         'image1': ImageUploadField,
         'image2': ImageUploadField,
         'image3': ImageUploadField,
         'image4': ImageUploadField,
-        'status': SelectField
+        'status': SelectField,
+        'members': QuerySelectMultipleField
     }
+
+    form_columns = [
+        'title',
+        'topic', 
+        'overview',
+        'status',
+        'start_date',
+        'end_date',
+        'image1',
+        'image2',
+        'image3',
+        'image4',
+        'members'  
+    ]
 
     form_args = {
         'image1': {
@@ -179,6 +204,10 @@ class ProjectModelView(AuthenticatedModelView):
         'status': {
             'choices': [('Ongoing', 'Ongoing'), ('Completed', 'Completed')],
             'coerce': str
+        },
+        'members': {
+            'query_factory': lambda: Student.query.order_by(Student.name).all(),
+            'get_label': 'name'  # Use string, not lambda
         }
     }
 
@@ -187,12 +216,20 @@ class ProjectModelView(AuthenticatedModelView):
         if not img:
             return ''
         return f'<img src="/uploads/projects/{img}" width="75">'
+    
+    def _list_members(view, context, model, name):
+        """Display member names in the list view"""
+        if not model.members:
+            return ''
+        member_names = [m.name for m in model.members]
+        return ', '.join(member_names[:3]) + ('...' if len(member_names) > 3 else '')
 
     column_formatters = {
         'image1': _list_thumbnail,
         'image2': _list_thumbnail,
         'image3': _list_thumbnail,
         'image4': _list_thumbnail,
+        'members': _list_members,
     }
 
 from wtforms import TextAreaField
@@ -212,15 +249,13 @@ class PublicationModelView(AuthenticatedModelView):
         }
     }
     
-    # Auto-parse BibTeX on save
     def on_model_change(self, form, model, is_created):
         model.parse_bibtex()
         super().on_model_change(form, model, is_created)
 
 class LabInfoModelView(AuthenticatedModelView):
-    # Usually only one lab info record
-    can_create = False  # Prevent creating multiple lab info records
-    can_delete = False  # Prevent deleting the lab info
+    can_create = False  
+    can_delete = False  
     
     column_list = ['lab_name', 'lab_full_name', 'lab_email', 'lab_phone', 'lab_address']
     

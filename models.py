@@ -61,6 +61,7 @@ class Student(db.Model):
     start_date = db.Column(db.String(20), nullable=True)
     end_date = db.Column(db.String(20), nullable=True)
     photo = db.Column(db.String(200), nullable=True)
+    order = db.Column(db.Integer, default=999)
     
     # Current vs Previous
     is_current = db.Column(db.Boolean, default=True)
@@ -68,6 +69,11 @@ class Student(db.Model):
     # For previous students
     thesis_title = db.Column(db.String(500), nullable=True)
     current_work = db.Column(db.String(200), nullable=True)
+
+    # Co-supervision fields
+    is_cosupervised = db.Column(db.Boolean, default=False)
+    cosupervisor_name = db.Column(db.String(200))
+    cosupervisor_affiliation = db.Column(db.String(300))
     
     # Links
     linkedin = db.Column(db.String(200), nullable=True)

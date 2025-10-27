@@ -330,7 +330,7 @@
                <img
                   src="{{ url_for('static', filename='uploads/professor/' + professor.photo) }}"
                   class="rounded-circle mx-auto"
-                  style="width: 140px; height: 140px; object-fit: cover; border: 3px solid #420303;"
+                  style="width: 180px; height: 180px; object-fit: cover; border: 3px solid #420303;"
                   alt="{{ professor.name }}"
                />
                {% else %}
@@ -468,11 +468,29 @@
                                  >Masters Student</span
                               >
                               {% endif %}
+                              {% if student.is_cosupervised %}
+                              <span
+                                 class="badge"
+                                 style="background-color: #381107"
+                                 title="Co-supervised with {{ student.cosupervisor_name }}"
+                              >
+                                 Co-supervised
+                              </span>
+                              {% endif %}
 
                               <p class="mt-2 mb-1">
                                  <strong>Research:</strong> {{
                                  student.research_focus or 'Deep Learning' }}
                               </p>
+                              {% if student.is_cosupervised and student.cosupervisor_name %}
+                              <p class="text-muted mb-1 small">
+                                 <i class="fas fa-handshake me-1"></i>
+                                 Co-supervised with <strong>{{ student.cosupervisor_name }}</strong>
+                                 {% if student.cosupervisor_affiliation %}
+                                 <span>({{ student.cosupervisor_affiliation }})</span>
+                                 {% endif %}
+                              </p>
+                              {% endif %}
                               <p class="text-muted mb-1">
                                  <i class="fas fa-university me-1"></i>{{
                                  student.school }}
@@ -643,8 +661,8 @@
                      "
                   >
                      <!-- Image -->
-                     <a
-                        href="{{ url_for('project_detail', project_id=project.id) }}"
+                     
+                       <a href="{{ url_for('project_detail', project_id=project.id) }}"
                      >
                         <img
                            src="{% if project.image1 %}{{ url_for('static', filename='uploads/projects/' + project.image1) }}{% else %}{{ url_for('static', filename='uploads/projects/dummy.png') }}{% endif %}"
@@ -672,6 +690,21 @@
                            <strong>Topic:</strong> {{ project.topic or 'Deep Learning' }}
                         </p>
 
+                        <!-- Team Members -->
+                        {% if project.members %}
+                        <p class="mb-2">
+                           <strong><i class="fas fa-users me-1"></i>Team:</strong>
+                           <span class="text-muted">
+                              {% for member in project.members[:3] %}
+                                 {{ member.name }}{% if not loop.last %}, {% endif %}
+                              {% endfor %}
+                              {% if project.members|length > 3 %}
+                                 <span class="badge bg-secondary ms-1">+{{ project.members|length - 3 }} more</span>
+                              {% endif %}
+                           </span>
+                        </p>
+                        {% endif %}
+
                         <!-- Overview (2 lines max) -->
                         <p
                            class="text-muted mb-2"
@@ -686,7 +719,7 @@
                         </p>
 
                         <!-- See More Button -->
-                        <a
+                           <a
                            href="{{ url_for('project_detail', project_id=project.id) }}"
                            class="btn btn-sm see-more-btn"
                            >See More</a
@@ -811,7 +844,7 @@
             </div>
             {% endfor %} {% else %}
             <p class="text-center text-muted">
-               No featured publications yet. Check our Google Scholar profile
+               No featured publications yet. Check out my Google Scholar profile
                for all publications.
             </p>
             {% endif %}

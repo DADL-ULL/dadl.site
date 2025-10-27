@@ -17,9 +17,7 @@ from admin_views import (
     ProjectModelView, PublicationModelView, LabInfoModelView
 )
 
-# ============================================================================
 # 1. App Configuration
-# ============================================================================
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'mysecretkey' 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///dadl_lab.db'
@@ -27,21 +25,16 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Create upload directories if they don't exist
 for folder in ['static/uploads/professor', 'static/uploads/students', 'static/uploads/projects']:
     os.makedirs(folder, exist_ok=True)
-    # Create .gitkeep files to preserve empty directories
     gitkeep_path = os.path.join(folder, '.gitkeep')
     if not os.path.exists(gitkeep_path):
         open(gitkeep_path, 'a').close()
 
-# Initialize database with app
 db.init_app(app)
 migrate = Migrate(app, db)
 
-# ============================================================================
 # 2. Flask-Login Setup
-# ============================================================================
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'admin_login'
@@ -50,9 +43,7 @@ login_manager.login_view = 'admin_login'
 def load_user(user_id):
     return AdminUser.query.get(int(user_id))
 
-# ============================================================================
 # 3. Setup Admin Panel with Enhanced Views
-# ============================================================================
 admin = Admin(
     app, 
     name='DADL Lab Admin', 
@@ -67,9 +58,7 @@ admin.add_view(ProjectModelView(Project, db.session, name='Projects'))
 admin.add_view(PublicationModelView(Publication, db.session, name='Publications'))
 admin.add_view(LabInfoModelView(LabInfo, db.session, name='Lab Information'))
 
-# ============================================================================
 # 4. Routes
-# ============================================================================
 @app.route('/')
 def home():
     """Main website homepage"""
@@ -77,10 +66,22 @@ def home():
     professor = Professor.query.first()
     
     # Students
-    current_phd = Student.query.filter_by(is_current=True, degree_type='PhD').all()
-    current_masters = Student.query.filter_by(is_current=True, degree_type='Masters').all()
-    former_phd = Student.query.filter_by(is_current=False, degree_type='PhD').all()
-    former_masters = Student.query.filter_by(is_current=False, degree_type='Masters').all()
+    current_phd = Student.query.filter_by(
+        is_current=True, 
+        degree_type='PhD'
+    ).order_by(Student.order, Student.name).all()
+    current_masters = Student.query.filter_by(
+        is_current=True, 
+        degree_type='Masters'
+    ).order_by(Student.order, Student.name).all()
+    former_phd = Student.query.filter_by(
+        is_current=False, 
+        degree_type='PhD'
+    ).order_by(Student.order, Student.end_date.desc()).all()
+    former_masters = Student.query.filter_by(
+        is_current=False, 
+        degree_type='Masters'
+    ).order_by(Student.order, Student.end_date.desc()).all()
     
     # Projects
     ongoing_projects = Project.query.filter_by(status='Ongoing').all()
@@ -151,20 +152,15 @@ def project_detail(project_id):
 
 
 
-# ============================================================================
 # 5. Context Processor
-# ============================================================================
 @app.context_processor
 def inject_user():
     return dict(current_user=current_user)
 
-# ============================================================================
 # 6. Database Initialization
-# ============================================================================
 def create_default_data():
     """Create default data if database is empty"""
-    
-    # Create default admin user
+
     if not AdminUser.query.first():
         admin = AdminUser(
             username='admin',
@@ -174,7 +170,6 @@ def create_default_data():
         db.session.add(admin)
         print("Created default admin user - username: admin, password: changeme123")
     
-    # Create default professor
     if not Professor.query.first():
         default_prof = Professor(
             name='Dr. John Smith',
@@ -192,7 +187,6 @@ def create_default_data():
         db.session.add(default_prof)
         print("Created default professor profile")
     
-    # Create default lab info
     if not LabInfo.query.first():
         lab_info = LabInfo(
             lab_name='DADL Lab',
@@ -207,7 +201,6 @@ def create_default_data():
         db.session.add(lab_info)
         print("Created default lab information")
     
-    # Create sample student (optional)
     if not Student.query.first():
         sample_student = Student(
             name='Jane Doe',
@@ -221,7 +214,6 @@ def create_default_data():
         db.session.add(sample_student)
         print("Created sample student")
     
-    # Create sample project (optional)
     if not Project.query.first():
         sample_project = Project(
             title='Deep Learning for Medical Image Analysis',
@@ -236,12 +228,9 @@ def create_default_data():
     db.session.commit()
     print("Default data creation complete!")
 
-# ============================================================================
 # 7. Main Entry Point
-# ============================================================================
 if __name__ == '__main__':
     with app.app_context():
-        # Only create tables, don't delete database
         db.create_all()
         create_default_data()
     
